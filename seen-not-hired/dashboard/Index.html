@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <base target="_top">
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Seen Not Hired</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+  <style>
+    :root {
+      --bg: #f6f7f9;
+      --card: #ffffff;
+      --text: #1d2330;
+      --muted: #667085;
+      --line: #e4e7ec;
+      --accent: #3b5bdb;
+      --strong: #2f9e44;
+      --good: #1c7ed6;
+      --stretch: #e8a317;
+      --bad: #e03131;
+      --chip: #eef1f6;
+      --radius: 12px;
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --bg: #12151b;
+        --card: #1b1f27;
+        --text: #e7e9ee;
+        --muted: #98a2b3;
+        --line: #2b313c;
+        --accent: #7b93ff;
+        --strong: #51cf66;
+        --good: #4dabf7;
+        --stretch: #fcc419;
+        --bad: #ff6b6b;
+        --chip: #252b36;
+      }
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font: 15px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    }
+    .wrap { max-width: 1080px; margin: 0 auto; padding: 20px 16px 48px; }
+    header { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
+    h1 { font-size: 22px; margin: 0; letter-spacing: -0.01em; }
+    h2 { font-size: 15px; margin: 0 0 10px; }
+    .muted { color: var(--muted); font-size: 13px; }
+    button {
+      font: inherit; font-size: 13px; padding: 6px 12px; border-radius: 8px;
+      border: 1px solid var(--line); background: var(--card); color: var(--text); cursor: pointer;
+    }
+    .card { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px; margin-bottom: 16px; }
+    .stats { display: grid; grid-template-columns: repeat(6, 1fr); gap: 12px; margin-bottom: 16px; }
+    .stat { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 12px 14px; }
+    .stat .n { font-size: 26px; font-weight: 650; font-variant-numeric: tabular-nums; }
+    .stat .l { color: var(--muted); font-size: 12px; }
+    .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .grid2 > .card { margin-bottom: 0; }
+    .row2 { margin-bottom: 16px; }
+    ul.list { list-style: none; margin: 0; padding: 0; }
+    ul.list li { padding: 9px 0; border-top: 1px solid var(--line); display: flex; gap: 10px; align-items: flex-start; }
+    ul.list li:first-child { border-top: 0; }
+    .grow { flex: 1; min-width: 0; }
+    .title { font-weight: 550; overflow-wrap: anywhere; }
+    .sub { color: var(--muted); font-size: 13px; overflow-wrap: anywhere; }
+    .chip { display: inline-block; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 999px; background: var(--chip); color: var(--muted); white-space: nowrap; }
+    .chip.Strong { background: color-mix(in srgb, var(--strong) 18%, transparent); color: var(--strong); }
+    .chip.Good { background: color-mix(in srgb, var(--good) 18%, transparent); color: var(--good); }
+    .chip.Stretch { background: color-mix(in srgb, var(--stretch) 22%, transparent); color: var(--stretch); }
+    .chip.late { background: color-mix(in srgb, var(--bad) 18%, transparent); color: var(--bad); }
+    .section-label { font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 14px 0 2px; }
+    .section-label:first-child { margin-top: 0; }
+    .date { font-size: 13px; color: var(--muted); white-space: nowrap; font-variant-numeric: tabular-nums; }
+    .date.late { color: var(--bad); font-weight: 600; }
+    a { color: var(--accent); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .chart-box { position: relative; height: 260px; }
+    .empty { color: var(--muted); font-size: 14px; padding: 6px 0; }
+    .warn { border-color: var(--stretch); }
+    .err { border-color: var(--bad); color: var(--bad); }
+    @media (max-width: 860px) { .stats { grid-template-columns: repeat(3, 1fr); } .grid2 { grid-template-columns: 1fr; } .grid2 > .card { margin-bottom: 16px; } .row2 { margin-bottom: 0; } }
+    @media (max-width: 420px) { .stats { grid-template-columns: repeat(2, 1fr); } .stat .n { font-size: 22px; } }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div>
+        <h1>Seen Not Hired</h1>
+        <div class="muted" id="meta">Loading your tracker...</div>
+      </div>
+      <button id="refresh" type="button">Refresh</button>
+    </header>
+
+    <div id="notice"></div>
+
+    <section class="card">
+      <h2>Today</h2>
+      <div id="todo"><div class="empty">Loading...</div></div>
+    </section>
+
+    <section class="stats" id="stats"></section>
+
+    <section class="card">
+      <h2>Pipeline by status</h2>
+      <div class="chart-box"><canvas id="pipeline" aria-label="Applications by status" role="img"></canvas></div>
+    </section>
+
+    <div class="grid2 row2">
+      <section class="card">
+        <h2>Upcoming deadlines</h2>
+        <div id="deadlines"></div>
+      </section>
+      <section class="card">
+        <h2>Follow-ups due</h2>
+        <div id="followups"></div>
+      </section>
+    </div>
+
+    <section class="card">
+      <h2>Latest scan results</h2>
+      <div class="muted" id="scanmeta" style="margin-bottom:8px"></div>
+      <div id="newroles"></div>
+    </section>
+
+    <p class="muted">Read-only. Claude updates the sheet. This page just shows it.</p>
+  </div>
+
+  <script>
+    var chart = null;
+
+    function esc(s) {
+      return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) {
+        return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+      });
+    }
+    function safeUrl(u) { return /^https?:\/\//i.test(String(u || '')) ? String(u) : ''; }
+    function link(text, url) {
+      var u = safeUrl(url);
+      return u ? '<a href="' + esc(u) + '" target="_blank" rel="noopener noreferrer">' + esc(text) + '</a>' : esc(text);
+    }
+    function niceDate(d) {
+      if (!d) return '';
+      var m = String(d).match(/^(\d{4})-(\d{2})-(\d{2})/);
+      if (!m) return esc(d);
+      var dt = new Date(+m[1], +m[2] - 1, +m[3]);
+      return dt.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+    }
+    function css(name) { return getComputedStyle(document.documentElement).getPropertyValue(name).trim(); }
+
+    function load() {
+      document.getElementById('meta').textContent = 'Loading your tracker...';
+      google.script.run
+        .withSuccessHandler(render)
+        .withFailureHandler(function (e) {
+          document.getElementById('notice').innerHTML = '<div class="card err">Couldn\'t read the sheet: ' + esc(e && e.message ? e.message : e) + '</div>';
+          document.getElementById('meta').textContent = '';
+        })
+        .getDashboardData();
+    }
+
+    function render(d) {
+      document.getElementById('meta').textContent =
+        'Updated ' + d.generatedAt + (d.todayBuiltAt ? ' · To-do list built ' + d.todayBuiltAt : '');
+
+      document.getElementById('notice').innerHTML = d.missingTabs.length
+        ? '<div class="card warn">Missing tabs: ' + esc(d.missingTabs.join(', ')) + '. Make sure this script is attached to your Seen Not Hired Tracker sheet.</div>'
+        : '';
+
+      // Today
+      var todo = document.getElementById('todo');
+      if (!d.todo.length) {
+        todo.innerHTML = '<div class="empty">Nothing on the list yet. Ask Claude "what should I do today?" to build it.</div>';
+      } else {
+        var html = '', last = null;
+        d.todo.forEach(function (t) {
+          if (t.section !== last) {
+            if (last !== null) html += '</ul>';
+            html += '<div class="section-label">' + esc(t.section || 'Other') + '</div><ul class="list">';
+            last = t.section;
+          }
+          var late = t.due && t.due < d.today;
+          html += '<li><div class="grow"><div class="title">' + link(t.task || '', t.link) + '</div>' +
+            '<div class="sub">' + esc([t.company, t.who, t.notes].filter(Boolean).join(' · ')) + '</div></div>' +
+            (t.due ? '<span class="date' + (late ? ' late' : '') + '">' + niceDate(t.due) + '</span>' : '') + '</li>';
+        });
+        todo.innerHTML = html + '</ul>';
+      }
+
+      // Stats
+      var s = d.stats;
+      var cards = [
+        ['Applied', s.applied],
+        ['OAs pending', s.oasPending],
+        ['Interviews', s.interviews],
+        ['Offers', s.offers],
+        ['Rejections', s.rejections],
+        ['Response rate', s.responseRate == null ? '–' : s.responseRate + '%']
+      ];
+      document.getElementById('stats').innerHTML = cards.map(function (c) {
+        return '<div class="stat"><div class="n">' + esc(c[1]) + '</div><div class="l">' + esc(c[0]) + '</div></div>';
+      }).join('');
+
+      // Pipeline chart
+      var colors = {
+        'Applied': css('--accent'), 'Action needed': css('--stretch'), 'Assessment': css('--stretch'),
+        'Recruiter screen': css('--good'), 'Interviewing': css('--good'), 'Offer': css('--strong'),
+        'Rejected': css('--bad'), 'Withdrawn': css('--muted')
+      };
+      var ctx = document.getElementById('pipeline');
+      if (chart) chart.destroy();
+      if (window.Chart) {
+        chart = new Chart(ctx, {
+          type: 'bar',
+          data: {
+            labels: d.pipeline.map(function (p) { return p.status; }),
+            datasets: [{ data: d.pipeline.map(function (p) { return p.count; }), backgroundColor: d.pipeline.map(function (p) { return colors[p.status]; }), borderRadius: 6, maxBarThickness: 22 }]
+          },
+          options: {
+            indexAxis: 'y', responsive: true, maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+              x: { beginAtZero: true, ticks: { precision: 0, color: css('--muted') }, grid: { color: css('--line') } },
+              y: { ticks: { color: css('--text') }, grid: { display: false } }
+            }
+          }
+        });
+      } else {
+        ctx.parentNode.innerHTML = '<ul class="list">' + d.pipeline.map(function (p) {
+          return '<li><div class="grow">' + esc(p.status) + '</div><b>' + p.count + '</b></li>';
+        }).join('') + '</ul>';
+      }
+
+      // Deadlines
+      document.getElementById('deadlines').innerHTML = d.deadlines.length
+        ? '<ul class="list">' + d.deadlines.map(function (x) {
+            return '<li><div class="grow"><div class="title">' + link(x.company + ' · ' + (x.next || x.status), x.link) + '</div>' +
+              '<div class="sub">' + esc(x.role) + '</div></div>' +
+              '<span class="date' + (x.overdue ? ' late' : '') + '">' + (x.overdue ? 'Overdue · ' : '') + niceDate(x.due) + '</span></li>';
+          }).join('') + '</ul>'
+        : '<div class="empty">No deadlines in the next two weeks.</div>';
+
+      // Follow-ups
+      document.getElementById('followups').innerHTML = d.followUps.length
+        ? '<ul class="list">' + d.followUps.map(function (x) {
+            return '<li><div class="grow"><div class="title">' + esc(x.name || '(no name)') + '</div><div class="sub">' + esc(x.company) + '</div></div>' +
+              '<span class="date' + (x.overdue ? ' late' : '') + '">' + (x.isDue ? 'Due ' : '') + niceDate(x.due) + '</span></li>';
+          }).join('') + '</ul>'
+        : '<div class="empty">No follow-ups due in the next 3 days.</div>';
+
+      // Latest scan
+      document.getElementById('scanmeta').innerHTML = d.scans.length
+        ? d.scans.map(function (r) {
+            return esc(r.type + (r.slot ? ' (' + r.slot + ')' : '') + ', ' + r.at + ': ' + (r.fresh || 0) + ' new, ' + (r.strong || 0) + ' strong') +
+              (r.errors ? ' <span class="chip late">' + esc(r.errors) + '</span>' : '');
+          }).join('<br>')
+        : 'No scans logged yet.';
+      document.getElementById('newroles').innerHTML = d.newRoles.length
+        ? '<ul class="list">' + d.newRoles.map(function (r) {
+            return '<li><span class="chip ' + esc(r.fit) + '">' + esc(r.fit) + '</span><div class="grow">' +
+              '<div class="title">' + link(r.company + ' · ' + r.role, r.link) + '</div>' +
+              '<div class="sub">' + esc([r.location, r.posted ? 'posted ' + niceDate(r.posted) : '', r.status !== 'New' ? r.status : ''].filter(Boolean).join(' · ')) + '</div>' +
+              (r.why ? '<div class="sub">' + esc(r.why) + '</div>' : '') + '</div></li>';
+          }).join('') + '</ul>'
+        : '<div class="empty">No open roles waiting. Run a scan with Claude.</div>';
+    }
+
+    document.getElementById('refresh').addEventListener('click', load);
+    load();
+  </script>
+</body>
+</html>
